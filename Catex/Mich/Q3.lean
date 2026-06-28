@@ -1,14 +1,10 @@
 module
 
-public import Mathlib.CategoryTheory.Limits.Shapes.BinaryProducts
-public import Mathlib.CategoryTheory.Limits.Shapes.Terminal
-public import Mathlib.Data.Multiset.Bind
-public import Mathlib.Data.Multiset.Filter
 public import Mathlib.Algebra.Order.Group.Multiset
-public import Mathlib.Algebra.BigOperators.Group.Multiset.Basic
-public import Mathlib.Logic.Equiv.Basic
-public import Mathlib.Data.Fintype.Prod
-public import Mathlib.Data.Finite.Prod
+public import Mathlib.CategoryTheory.Limits.Shapes.BinaryProducts
+public import Mathlib.Algebra.BigOperators.Group.Multiset.Defs
+public import Mathlib.Data.Finite.Defs
+import Mathlib.Data.Finite.Prod
 
 @[expose] public section
 

@@ -1,19 +1,15 @@
 module
 
-public import Mathlib.CategoryTheory.Category.Basic
-public import Mathlib.Logic.Embedding.Basic
-public import Mathlib.CategoryTheory.ObjectProperty.FullSubcategory
-public import Mathlib.CategoryTheory.Types.Basic
-public import Mathlib.Data.Fin.Embedding
-public import Mathlib.Logic.Equiv.Set
-public import Mathlib.GroupTheory.Perm.Basic
-public import Mathlib.Data.Finset.Sort
-public import Mathlib.Data.Set.Finite.Basic
-public import Mathlib.Logic.Equiv.Fintype
+
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.End
+public import Mathlib.CategoryTheory.Limits.Shapes.Pullback.IsPullback.Defs
 public import Mathlib.Logic.Equiv.Fin.Basic
-public import Mathlib.Data.Set.Finite.Range
-public import Mathlib.CategoryTheory.Adjunction.Basic
-public import Mathlib.CategoryTheory.Limits.Types.Pullbacks
+import Mathlib.CategoryTheory.Limits.Types.Pullbacks
+import Mathlib.Data.Finset.Sort
+import Mathlib.Data.Set.Finite.Basic
+import Mathlib.Data.Set.Finite.Range
+import Mathlib.Logic.Equiv.Fintype
 
 public import Catex.Lent.FinInj
 

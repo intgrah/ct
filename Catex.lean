@@ -1,2 +1,4 @@
-import Catex.Mich
-import Catex.Lent
+module
+
+public import Catex.Mich
+public import Catex.Lent

@@ -1,9 +1,8 @@
 module
 
 public import Mathlib.CategoryTheory.Category.Basic
-public import Mathlib.CategoryTheory.Limits.Shapes.Pullback.HasPullback
-public import Mathlib.Order.Fin.Basic
-public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Fin.Embedding
+import Mathlib.Data.Fintype.Card
 
 @[expose] public section
 

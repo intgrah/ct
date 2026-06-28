@@ -1,7 +1,6 @@
 module
 
 public import Mathlib.CategoryTheory.Monoidal.Closed.Cartesian
-public import Mathlib.CategoryTheory.Adjunction.Basic
 
 @[expose] public section
 

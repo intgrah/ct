@@ -1,6 +1,5 @@
 module
 
-public import Mathlib.CategoryTheory.Monoidal.Closed.Cartesian
 public import Mathlib.CategoryTheory.Monoidal.Closed.Types
 
 public import Catex.Lent.FinInj

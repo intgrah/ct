@@ -1,8 +1,8 @@
 module
 
-public import Mathlib.CategoryTheory.Limits.Shapes.Terminal
-public import Mathlib.Algebra.BigOperators.Group.Multiset.Basic
+public import Mathlib.Algebra.BigOperators.Group.List.Basic
 public import Mathlib.Algebra.Order.Group.Multiset
+public import Mathlib.CategoryTheory.Limits.Shapes.Terminal
 
 @[expose] public section
 
