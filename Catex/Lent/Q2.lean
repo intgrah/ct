@@ -9,7 +9,7 @@ open CategoryTheory Functor
 universe u
 
 /- For a small category 𝓒, -/
-variable (𝓒 : Type u) [SmallCategory.{u} 𝓒]
+variable (𝓒 : Type u) [SmallCategory 𝓒]
 
 /--
 Define the functor H : Set^𝓒 ⥤ Set^obj(𝓒) to map:
@@ -25,30 +25,17 @@ def H : (𝓒 ⥤ Type u) ⥤ (Discrete 𝓒 ⥤ Type u) where
 
 /- Prove that the functor H : Set^𝓒 → Set^obj(𝓒) has both a left and a right adjoint. -/
 
-@[reducible]
 def H.left : (Discrete 𝓒 ⥤ Type u) ⥤ (𝓒  ⥤ Type u) where
   obj F := {
     obj c := Σ d : 𝓒, (d ⟶ c) × F.obj ⟨d⟩
     map {c c'} g := ↾fun ⟨d, f, x⟩ => ⟨d, f ≫ g, x⟩
-    map_id c := calc
-          (↾fun ⟨d, f, x⟩ => ⟨d, f ≫ 𝟙 c, x⟩)
-        = (↾fun ⟨d, f, x⟩ => ⟨d, f, x⟩) := by simp only [Category.comp_id]
-      _ = 𝟙 (Σ d : 𝓒, (d ⟶ c) × F.obj ⟨d⟩) := rfl
-    map_comp {F G K} fg gk := by
-      ext ⟨d, f, x⟩
-      · dsimp
-      · dsimp
-        rw [Category.assoc]
   }
   map {F G} α := {
     app c := ↾fun ⟨d, f, x⟩ => ⟨d, f, α.app ⟨d⟩ x⟩
-    naturality {X Y} f := rfl
   }
-  map_id F := rfl
-  map_comp {F G K} fg gk := rfl
 
 def H.leftAdjunction : H.left 𝓒 ⊣ H 𝓒 :=
-  Adjunction.mkOfUnitCounit {
+  .mkOfUnitCounit {
     unit := {
       app F := {
         app c := ↾fun x => ⟨c.as, 𝟙 c.as, x⟩
@@ -57,24 +44,18 @@ def H.leftAdjunction : H.left 𝓒 ⊣ H 𝓒 :=
           obtain rfl := Discrete.eq_of_hom ⟨f⟩
           simp
       }
-      naturality {X Y} f := rfl
     }
     counit := {
       app X := {
         app c := ↾fun ⟨d, f, x⟩ => X.map f x
         naturality {c c'} g := by
           ext ⟨d, f, x⟩
-          change X.map (f ≫ g) x = X.map g (X.map f x)
           exact Functor.map_comp_apply X f g x
       }
       naturality {X Y} f := by
         ext c ⟨d, g, x⟩
-        change Y.map g (f.app d x) = f.app c (X.map g x)
-        calc
-              Y.map g (f.app d x)
-            = (f.app d ≫ Y.map g) x := rfl
-          _ = (X.map g ≫ f.app c) x := by rw [f.naturality g]
-          _ = f.app c (X.map g x) := rfl
+        change (f.app d ≫ Y.map g) x = (X.map g ≫ f.app c) x
+        rw [f.naturality g]
     }
     left_triangle := by
       ext F c ⟨d, f, x⟩
@@ -86,7 +67,6 @@ def H.leftAdjunction : H.left 𝓒 ⊣ H 𝓒 :=
       rw [Functor.map_id_apply]
   }
 
-@[reducible]
 def H.right : (Discrete 𝓒 ⥤ Type u) ⥤ (𝓒  ⥤ Type u) where
   obj F := {
     obj c := ∀ d : 𝓒, (c ⟶ d) → F.obj ⟨d⟩
@@ -94,11 +74,10 @@ def H.right : (Discrete 𝓒 ⥤ Type u) ⥤ (𝓒  ⥤ Type u) where
   }
   map {F G} fg := {
     app c := ↾fun β d f => fg.app ⟨d⟩ (β d f)
-    naturality {c c'} f := rfl
   }
 
 def H.rightAdjunction : H 𝓒 ⊣ H.right 𝓒 :=
-  Adjunction.mkOfUnitCounit {
+  .mkOfUnitCounit {
     unit := {
       app Y := {
         app c := ↾fun y d f => Y.map f y
@@ -110,13 +89,11 @@ def H.rightAdjunction : H 𝓒 ⊣ H.right 𝓒 :=
       naturality {X Y} f := by
         ext c y
         funext d g
-        calc Y.map g (f.app c y)
-            = (f.app c ≫ Y.map g) y := rfl
-          _ = (X.map g ≫ f.app d) y := by rw [f.naturality g]
-          _ = f.app d (X.map g y) := rfl
+        change (f.app c ≫ Y.map g) y = (X.map g ≫ f.app d) y
+        rw [f.naturality g]
     }
     counit := {
-      app := fun F => {
+      app F := {
         app c := ↾fun α => α c.as (𝟙 c.as)
         naturality := by
           intro ⟨X⟩ ⟨Y⟩ ⟨f⟩
@@ -126,13 +103,12 @@ def H.rightAdjunction : H 𝓒 ⊣ H.right 𝓒 :=
     }
     left_triangle := by
       ext p c f
-      dsimp [H]
       change p.map (𝟙 c.as) f = f
       rw [Functor.map_id_apply]
     right_triangle := by
       ext p c f
-      change (fun d g => f d (g ≫ 𝟙 d)) = f
-      ext
+      funext d g
+      change f d (g ≫ 𝟙 d) = f d g
       rw [Category.comp_id]
   }
 

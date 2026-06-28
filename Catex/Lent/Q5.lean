@@ -1,6 +1,5 @@
 module
 
-
 public import Mathlib.Algebra.Group.Action.Defs
 public import Mathlib.Algebra.Group.End
 public import Mathlib.CategoryTheory.Limits.Shapes.Pullback.IsPullback.Defs
@@ -16,6 +15,7 @@ public import Catex.Lent.FinInj
 @[expose] public section
 
 open CategoryTheory Function
+open Equiv (Perm)
 
 open FinInj
 
@@ -157,36 +157,36 @@ def Pω.mk (z : Raw P) : Pω P := Quotient.mk _ z
 theorem Pω.ind {motive : Pω P → Prop} (mk : ∀ z, motive (Pω.mk z)) :
     ∀ x, motive x := Quotient.ind mk
 
-def Raw.smul (π : Equiv.Perm ℕ) (z : Raw P) : Raw P :=
+def Raw.smul (π : Perm ℕ) (z : Raw P) : Raw P :=
   ⟨z.k, z.s.trans π, z.x⟩
 
-@[simp] theorem Raw.smul_s (π : Equiv.Perm ℕ) (z : Raw P) :
+@[simp] theorem Raw.smul_s (π : Perm ℕ) (z : Raw P) :
     (Raw.smul π z).s = z.s.trans π := rfl
 
-theorem Raw.smul_rel (π : Equiv.Perm ℕ) {z w : Raw P} (h : z ≈ w) :
+theorem Raw.smul_rel (π : Perm ℕ) {z w : Raw P} (h : z ≈ w) :
     Raw.smul π z ≈ Raw.smul π w := by
   have ⟨m, u, u', t, hu, hu', hx⟩ := h
   refine ⟨m, u, u', t.trans π, ?_, ?_, hx⟩
   · rw [Raw.smul_s, hu]; exact Embedding.trans_assoc u t _
   · rw [Raw.smul_s, hu']; exact Embedding.trans_assoc u' t _
 
-instance : SMul (Equiv.Perm ℕ) (Pω P) where
+instance : SMul (Perm ℕ) (Pω P) where
   smul π := Quotient.map (Raw.smul π) (fun _ _ => Raw.smul_rel π)
 
-@[simp] theorem Pω.smul_mk (π : Equiv.Perm ℕ) (z : Raw P) :
+@[simp] theorem Pω.smul_mk (π : Perm ℕ) (z : Raw P) :
     π • Pω.mk z = Pω.mk (Raw.smul π z) := rfl
 
 theorem Pω.mk_map {k N : ℕ} (u : k ⟶ N) (t : Fin N ↪ ℕ) (x : P.obj k) :
     Pω.mk (⟨N, t, P.map u x⟩ : Raw P) = Pω.mk ⟨k, u.trans t, x⟩ :=
   Quotient.sound ⟨N, 𝟙 N, u, t, rfl, rfl, by simp⟩
 
-instance : MulAction (Equiv.Perm ℕ) (Pω P) where
+instance : MulAction (Perm ℕ) (Pω P) where
   one_smul := by
     intro b
     cases b using Pω.ind with | _ z =>
     have ⟨k, s, x⟩ := z
     simp only [Pω.smul_mk, Raw.smul]
-    have h : s.trans (1 : Equiv.Perm ℕ) = s := by ext; simp
+    have h : s.trans (1 : Perm ℕ) = s := by ext; simp
     rw [h]
   mul_smul π₁ π₂ := by
     intro b
@@ -195,11 +195,11 @@ instance : MulAction (Equiv.Perm ℕ) (Pω P) where
     simp only [Pω.smul_mk, Raw.smul]
     have h : s.trans (π₁ * π₂)
         = (s.trans π₂).trans π₁.toEmbedding := by
-      ext; simp [Equiv.Perm.mul_apply]
+      ext; simp [Perm.mul_apply]
     rw [h]
 
 def Supports (A : Set ℕ) (z : Pω P) : Prop :=
-  ∀ π : Equiv.Perm ℕ, (∀ a ∈ A, π a = a) → π • z = z
+  ∀ π : Perm ℕ, (∀ a ∈ A, π a = a) → π • z = z
 
 theorem Supports.range (z : Raw P) : Supports (Set.range z.s) (Pω.mk z) := by
   intro π hπ
@@ -256,8 +256,8 @@ theorem Supports.swap_fix {A B : Set ℕ} (hA : A.Finite) (hB : B.Finite) {z : P
 
 theorem realize {C : Set ℕ} {z : Pω P}
     (hsw : ∀ a b, a ∉ C → b ∉ C → Equiv.swap a b • z = z)
-    {π : Equiv.Perm ℕ} (hπ : ∀ c ∈ C, π c = c) (D : Finset ℕ) :
-    ∃ ρ : Equiv.Perm ℕ,
+    {π : Perm ℕ} (hπ : ∀ c ∈ C, π c = c) (D : Finset ℕ) :
+    ∃ ρ : Perm ℕ,
       ρ • z = z ∧ (∀ c ∈ C, ρ c = c) ∧ (∀ d ∈ D, ρ d = π d) := by
   induction D using Finset.induction_on with
   | empty => exact ⟨1, one_smul _ _, fun c _ => rfl, fun d hd => absurd hd (by simp)⟩
@@ -275,12 +275,12 @@ theorem realize {C : Set ℕ} {z : Pω P}
       refine ⟨Equiv.swap (ρ' d) (π d) * ρ', ?_, ?_, ?_⟩
       · rw [mul_smul, hρ'z, hsw _ _ hfC heC]
       · intro c hc
-        rw [Equiv.Perm.mul_apply, hρ'C c hc, Equiv.swap_apply_of_ne_of_ne
+        rw [Perm.mul_apply, hρ'C c hc, Equiv.swap_apply_of_ne_of_ne
           (ne_of_mem_of_not_mem hc hfC) (ne_of_mem_of_not_mem hc heC)]
       · intro e' he'
         rcases Finset.mem_insert.mp he' with rfl | he''
-        · rw [Equiv.Perm.mul_apply, Equiv.swap_apply_left]
-        · rw [Equiv.Perm.mul_apply, hρ'D e' he'']
+        · rw [Perm.mul_apply, Equiv.swap_apply_left]
+        · rw [Perm.mul_apply, hρ'D e' he'']
           apply Equiv.swap_apply_of_ne_of_ne
           · rw [← hρ'D e' he'']
             exact ρ'.injective.ne (ne_of_mem_of_not_mem he'' hd)
@@ -305,7 +305,7 @@ theorem Supports.inter {A B : Set ℕ} (hA : A.Finite) (hB : B.Finite) {z : Pω 
   rw [heq, hρz]
 
 theorem exists_perm_eqOn (g : ℕ → ℕ) (D : Finset ℕ) (hg : Set.InjOn g ↑D) :
-    ∃ ρ : Equiv.Perm ℕ, ∀ d ∈ D, ρ d = g d := by
+    ∃ ρ : Perm ℕ, ∀ d ∈ D, ρ d = g d := by
   classical
   have : Finite {x | x ∈ (↑D : Set ℕ)} := D.finite_toSet.to_subtype
   refine ⟨(Equiv.Set.imageOfInjOn g ↑D hg).extendSubtype, fun d hd => ?_⟩
@@ -316,14 +316,14 @@ def extFun {m n : ℕ} (u : m ⟶ n) (k : ℕ) : ℕ :=
   if h : k < m then u ⟨k, h⟩ else k
 
 theorem extPerm_exists {m n : ℕ} (u : m ⟶ n) :
-    ∃ ρ : Equiv.Perm ℕ, ∀ d ∈ Finset.range m, ρ d = extFun u d := by
+    ∃ ρ : Perm ℕ, ∀ d ∈ Finset.range m, ρ d = extFun u d := by
   apply exists_perm_eqOn (extFun u) (Finset.range m)
   intro a ha b hb hab
   simp only [Finset.coe_range, Set.mem_Iio] at ha hb
   simp only [extFun, dif_pos ha, dif_pos hb] at hab
   simpa using u.injective (Fin.val_injective hab)
 
-noncomputable def extPerm {m n : ℕ} (u : m ⟶ n) : Equiv.Perm ℕ := (extPerm_exists u).choose
+noncomputable def extPerm {m n : ℕ} (u : m ⟶ n) : Perm ℕ := (extPerm_exists u).choose
 
 theorem extPerm_apply {m n : ℕ} (u : m ⟶ n) (i : Fin m) :
     extPerm u i = u i := by
@@ -337,13 +337,13 @@ theorem extPerm_lt {m n : ℕ} (u : m ⟶ n) {k : ℕ} (hk : k < m) : extPerm u 
   exact (u ⟨k, hk⟩).isLt
 
 theorem Supports.smul_eq_of_eqOn {n : ℕ} {z : Pω P} (hz : Supports {a | a < n} z)
-    {p q : Equiv.Perm ℕ} (h : ∀ a, a < n → p a = q a) : p • z = q • z := by
+    {p q : Perm ℕ} (h : ∀ a, a < n → p a = q a) : p • z = q • z := by
   have hfix : (q⁻¹ * p) • z = z := by
     apply hz
     intro a ha
     rw [Set.mem_setOf_eq] at ha
-    rw [Equiv.Perm.mul_apply, h a ha]
-    exact Equiv.Perm.inv_eq_iff_eq.mpr rfl
+    rw [Perm.mul_apply, h a ha]
+    exact Perm.inv_eq_iff_eq.mpr rfl
   calc p • z
     _ = q • ((q⁻¹ * p) • z) := by rw [← mul_smul, mul_inv_cancel_left]
     _ = q • z := by rw [hfix]
@@ -358,23 +358,10 @@ theorem supports_extPerm {m n : ℕ} (u : m ⟶ n) {z : Pω P}
   have hfix : ((extPerm u)⁻¹ * σ * extPerm u) • z = z := hz _ (by
     intro a ha
     rw [Set.mem_setOf_eq] at ha
-    rw [Equiv.Perm.mul_apply, Equiv.Perm.mul_apply, hσ _ (extPerm_lt u ha)]
-    exact Equiv.Perm.inv_eq_iff_eq.mpr rfl)
+    rw [Perm.mul_apply, Perm.mul_apply, hσ _ (extPerm_lt u ha)]
+    exact Perm.inv_eq_iff_eq.mpr rfl)
   have key : σ * extPerm u = extPerm u * ((extPerm u)⁻¹ * σ * extPerm u) := by
     rw [mul_assoc (extPerm u)⁻¹ σ, mul_inv_cancel_left]
-  rw [← mul_smul, key, mul_smul, hfix]
-
-theorem Supports.mono {A B : Set ℕ} {z : Pω P} (hAB : A ⊆ B) (h : Supports A z) :
-    Supports B z := fun π hπ => h π fun a ha => hπ a (hAB ha)
-
-theorem Supports.smul {A : Set ℕ} {z : Pω P} (h : Supports A z) (p : Equiv.Perm ℕ) :
-    Supports (p '' A) (p • z) := by
-  intro σ hσ
-  have hfix : (p⁻¹ * σ * p) • z = z := h _ (by
-    intro a ha
-    rw [Equiv.Perm.mul_apply, Equiv.Perm.mul_apply, hσ (p a) ⟨a, ha, rfl⟩]
-    exact Equiv.Perm.inv_eq_iff_eq.mpr rfl)
-  have key : σ * p = p * (p⁻¹ * σ * p) := by rw [mul_assoc p⁻¹ σ, mul_inv_cancel_left]
   rw [← mul_smul, key, mul_smul, hfix]
 
 theorem extPerm_sq₁ {ℓ m n k : ℕ} (hk : k < m) : extPerm (sq₁ ℓ m n) k = ℓ + k := by
@@ -389,6 +376,19 @@ theorem extPerm_sq₃ {ℓ m n k : ℕ} (hk : k < ℓ + m) : extPerm (sq₃ ℓ 
 theorem extPerm_sq₄ {ℓ m n k : ℕ} (hk : k < m + n) : extPerm (sq₄ ℓ m n) k = ℓ + k := by
   rw [extPerm_apply_lt _ hk]; rfl
 
+theorem Supports.mono {A B : Set ℕ} {z : Pω P} (hAB : A ⊆ B) (h : Supports A z) :
+    Supports B z := fun π hπ => h π fun a ha => hπ a (hAB ha)
+
+theorem Supports.smul {A : Set ℕ} {z : Pω P} (h : Supports A z) (p : Perm ℕ) :
+    Supports (p '' A) (p • z) := by
+  intro σ hσ
+  have hfix : (p⁻¹ * σ * p) • z = z := h _ (by
+    intro a ha
+    rw [Perm.mul_apply, Perm.mul_apply, hσ (p a) ⟨a, ha, rfl⟩]
+    exact Perm.inv_eq_iff_eq.mpr rfl)
+  have key : σ * p = p * (p⁻¹ * σ * p) := by rw [mul_assoc p⁻¹ σ, mul_inv_cancel_left]
+  rw [← mul_smul, key, mul_smul, hfix]
+
 abbrev L.obj (P : ℕ ⥤ Type) (n : ℕ) : Type := { z : Pω P // Supports {a | a < n} z }
 
 noncomputable def L.map {m n : ℕ} (u : m ⟶ n) : L.obj P m → L.obj P n
@@ -400,18 +400,20 @@ noncomputable def L.pre (P : ℕ ⥤ Type) : ℕ ⥤ Type where
   map_id n := by
     ext ⟨z, hz⟩
     change extPerm (𝟙 n) • z = z
-    rw [Supports.smul_eq_of_eqOn hz (q := 1) (by
+    rw [hz.smul_eq_of_eqOn (by
       intro a ha
-      rw [Equiv.Perm.one_apply, extPerm_apply_lt (𝟙 n) ha]
+      rw [Perm.one_apply, extPerm_apply_lt (𝟙 n) ha]
       rfl), one_smul]
   map_comp u v := by
     ext ⟨z, hz⟩
     change extPerm (u ≫ v) • z = extPerm v • (extPerm u • z)
-    rw [← mul_smul, Supports.smul_eq_of_eqOn hz (by
+    have : extPerm (u ≫ v) • z = (extPerm v * extPerm u) • z := by
+      apply hz.smul_eq_of_eqOn
       intro a ha
-      rw [Equiv.Perm.mul_apply, extPerm_apply_lt u ha,
+      rw [Perm.mul_apply, extPerm_apply_lt u ha,
         extPerm_apply_lt v (u ⟨a, ha⟩).isLt, extPerm_apply_lt (u ≫ v) ha]
-      rfl)]
+      rfl
+    rw [← mul_smul, this]
 
 @[simp] theorem L.pre_map_val {m n : ℕ} (u : m ⟶ n) (x : L.obj P m) :
     ((L.pre P).map u x).val = extPerm u • x.val := rfl
@@ -420,13 +422,13 @@ theorem sq₂_smul {ℓ m n : ℕ} {z : Pω P} (hz : Supports {a | a < m} z) :
     extPerm (sq₂ ℓ m n) • z = z := by
   rw [Supports.smul_eq_of_eqOn hz (q := 1) (by
     intro a ha
-    rw [extPerm_sq₂ ha, Equiv.Perm.one_apply]), one_smul]
+    rw [extPerm_sq₂ ha, Perm.one_apply]), one_smul]
 
 theorem sq₃_smul {ℓ m n : ℕ} {z : Pω P} (hz : Supports {a | a < ℓ + m} z) :
     extPerm (sq₃ ℓ m n) • z = z := by
   rw [Supports.smul_eq_of_eqOn hz (q := 1) (by
     intro a ha
-    rw [extPerm_sq₃ ha, Equiv.Perm.one_apply]), one_smul]
+    rw [extPerm_sq₃ ha, Perm.one_apply]), one_smul]
 
 theorem L.pre_suitable (P : ℕ ⥤ Type) : Suitable (L.pre P) := by
   intro ℓ m n
@@ -455,7 +457,7 @@ theorem L.pre_suitable (P : ℕ ⥤ Type) : Suitable (L.pre P) := by
       simp only [Set.mem_setOf_eq] at hc1 hd ⊢
       have he : extPerm (sq₄ ℓ m n) d = ℓ + d := extPerm_sq₄ hd
       have hbd : b = d := by
-        rw [← hcb, ← hdc]; exact Equiv.Perm.inv_eq_iff_eq.mpr rfl
+        rw [← hcb, ← hdc]; exact Perm.inv_eq_iff_eq.mpr rfl
       omega
     refine ⟨⟨z₂, hz₂m⟩, ?_, ?_⟩
     · apply Subtype.ext
@@ -479,7 +481,7 @@ def Pω.map (f : P ⟶ Q) : Pω P → Pω Q := Quotient.map (Raw.map f) (fun _ _
 
 @[simp] theorem Pω.map_mk (f : P ⟶ Q) (z : Raw P) : Pω.map f (Pω.mk z) = Pω.mk (Raw.map f z) := rfl
 
-theorem Pω.map_smul (f : P ⟶ Q) (π : Equiv.Perm ℕ) (z : Pω P) :
+theorem Pω.map_smul (f : P ⟶ Q) (π : Perm ℕ) (z : Pω P) :
     Pω.map f (π • z) = π • Pω.map f z :=
   Pω.ind (fun _ => rfl) z
 
@@ -558,7 +560,7 @@ theorem map_injective_of_comp_id {a b : ℕ} (u : a ⟶ b) (w : b ⟶ a) (h : u 
 theorem Suitable.map_injective (hS : Suitable S) {a b : ℕ} (u : a ⟶ b) : Injective (S.map u) := by
   have hab : a ≤ b := FinInj.le u
   have heq : a + (b - a) = b := Nat.add_sub_cancel' hab
-  have ⟨σ, hσ⟩ := Equiv.Perm.exists_extending_pair
+  have ⟨σ, hσ⟩ := Perm.exists_extending_pair
     (Fin.castLE hab) u (Fin.castLE_injective hab) u.injective
   let σhom : b ⟶ b := σ.toEmbedding
   let chom : a + (b - a) ⟶ b := (finCongr heq).toEmbedding

@@ -199,7 +199,7 @@ lemma adj_eq : (tensorLeft N).map forward ≫ ev = (eval : N ⊗ P˜ ⟶ P) := b
   let ev : N ⊗ (N ⟹ P) ⟶ P := (ihom.ev N).app P
   have adj_pt n i fx : ev.app n (i, forward.app n fx) = eval.app n (i, fx) := by
     rw [← adj_eq]
-    set_option maxRecDepth 1024 in rfl
+    rfl
   ext n fx
   apply Prod.ext
   · ext i
@@ -237,7 +237,7 @@ lemma adj_eq : (tensorLeft N).map forward ≫ ev = (eval : N ⊗ P˜ ⟶ P) := b
     have key : ev.app m (((tensorLeft N).map (backward ≫ forward)).app m (i, β)) =
         eval.app m (i, backward.app m β) := by
       rw [← adj_eq]
-      set_option maxRecDepth 2048 in rfl
+      rfl
     calc ((tensorLeft N).map (backward ≫ forward) ≫ ev).app m (i, β)
         = ev.app m (((tensorLeft N).map (backward ≫ forward)).app m (i, β)) := rfl
       _ = eval.app m (i, backward.app m β) := key
@@ -306,7 +306,6 @@ theorem app_universal (g : Q ⊗ N ⟶ P) :
     apply equiv.symm.injective
     rw [Equiv.symm_apply_apply]
     symm
-    set_option maxRecDepth 1024 in
     calc g
       _ = (h ⊗ₘ 𝟙 N) ≫ app := hh.symm
       _ = (h ⊗ₘ 𝟙 N) ≫ ((forward ⊗ₘ 𝟙 N) ≫ (β_ (N ⟹ P) N).hom ≫ adj.counit.app P) := rfl

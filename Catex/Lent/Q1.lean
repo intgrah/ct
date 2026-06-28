@@ -4,11 +4,8 @@ public import Mathlib.CategoryTheory.Monoidal.Closed.Cartesian
 
 @[expose] public section
 
-open CategoryTheory Opposite
-open CategoryTheory.MonoidalCategory
-open CategoryTheory.MonoidalClosed
-open CategoryTheory.CartesianMonoidalCategory
-open scoped CategoryTheory.CartesianClosed
+open CategoryTheory Opposite MonoidalCategory MonoidalClosed CartesianMonoidalCategory
+open scoped CartesianClosed
 
 universe v u
 
