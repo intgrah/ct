@@ -82,16 +82,15 @@ noncomputable def factEmb {k m : ℕ} (s : Fin k ↪ ℕ) (t : Fin m ↪ ℕ)
     (h : ∀ i, s i ∈ Set.range t) : Fin k ↪ Fin m where
   toFun i := (Equiv.ofInjective ⇑t t.injective).symm ⟨s i, h i⟩
   inj' i j hij := s.injective (by
-    have h2 := (Equiv.ofInjective ⇑t t.injective).symm.injective hij
-    simpa only [Subtype.ext_iff] using h2)
+    simpa only [Subtype.ext_iff] using (Equiv.ofInjective ⇑t t.injective).symm.injective hij)
 
 @[simp] theorem factEmb_spec {k m : ℕ} (s : Fin k ↪ ℕ) (t : Fin m ↪ ℕ)
     (h : ∀ i, s i ∈ Set.range t) (i : Fin k) : t (factEmb s t h i) = s i :=
   Equiv.apply_ofInjective_symm t.injective ⟨s i, h i⟩
 
 theorem factEmb_trans {k m : ℕ} (s : Fin k ↪ ℕ) (t : Fin m ↪ ℕ)
-    (h : ∀ i, s i ∈ Set.range t) : (factEmb s t h).trans t = s := by
-  ext; simp
+    (h : ∀ i, s i ∈ Set.range t) : (factEmb s t h).trans t = s :=
+  Embedding.ext (factEmb_spec s t h)
 
 def Glued (z₁ z₂ : Raw P) : Prop :=
   ∃ (m : ℕ) (u₁ : z₁.k ⟶ m) (u₂ : z₂.k ⟶ m) (t : Fin m ↪ ℕ),
@@ -125,15 +124,8 @@ theorem Glued.trans {z₁ z₂ z₃ : Raw P} : Glued z₁ z₂ → Glued z₂ z�
     apply hom_ext
     intro j
     apply T.injective
-    have e1 : T ((u₂ ≫ v) j) = z₂.s j := by
-      have hh : u₂.trans (v.trans T) j = z₂.s j := by rw [hvt, ← h2]
-      rw [Embedding.trans_apply] at hh
-      exact hh
-    have e2 : T ((u₂' ≫ v') j) = z₂.s j := by
-      have hh : u₂'.trans (v'.trans T) j = z₂.s j := by rw [hvt', ← h2']
-      rw [Embedding.trans_apply] at hh
-      exact hh
-    rw [e1, e2]
+    change (u₂.trans (v.trans T)) j = (u₂'.trans (v'.trans T)) j
+    rw [hvt, hvt', ← h2, ← h2']
   refine ⟨M, u₁ ≫ v, u₃ ≫ v', T, ?_, ?_, ?_⟩
   · rw [h1]
     change u₁.trans t = (u₁.trans v).trans T
@@ -157,39 +149,39 @@ def Pω.mk (z : Raw P) : Pω P := ⟦z⟧
 theorem Pω.ind {motive : Pω P → Prop} (mk : ∀ z, motive (Pω.mk z)) :
     ∀ x, motive x := Quotient.ind mk
 
-def Raw.smul (π : Perm ℕ) (z : Raw P) : Raw P :=
-  ⟨z.k, z.s.trans π, z.x⟩
+instance Raw.instMulAction : MulAction (Perm ℕ) (Raw P) where
+  smul π z := ⟨z.k, z.s.trans π, z.x⟩
+  one_smul _ := rfl
+  mul_smul _ _ _ := rfl
 
 theorem Raw.smul_s (π : Perm ℕ) (z : Raw P) :
-    (Raw.smul π z).s = z.s.trans π := rfl
+    (π • z).s = z.s.trans π := rfl
 
-theorem Raw.smul_rel (π : Perm ℕ) {z w : Raw P} :
-    z ≈ w → Raw.smul π z ≈ Raw.smul π w := by
+theorem Raw.smul_rel (π : Perm ℕ) (z₁ z₂ : Raw P) :
+    z₁ ≈ z₂ → π • z₁ ≈ π • z₂ := by
   intro ⟨m, u, u', t, hu, hu', hx⟩
   refine ⟨m, u, u', t.trans π, ?_, ?_, hx⟩
   · rw [Raw.smul_s, hu]; exact Embedding.trans_assoc u t _
   · rw [Raw.smul_s, hu']; exact Embedding.trans_assoc u' t _
 
-instance : SMul (Perm ℕ) (Pω P) where
-  smul π := Quotient.map (Raw.smul π) (fun _ _ => Raw.smul_rel π)
+instance Pω.instMulAction : MulAction (Perm ℕ) (Pω P) where
+  smul π z := Quotient.map (π • ·) (Raw.smul_rel π) z
+  one_smul b := by cases b using Pω.ind; rfl
+  mul_smul π₁ π₂ b := by cases b using Pω.ind; rfl
 
 @[simp] theorem Pω.smul_mk (π : Perm ℕ) (z : Raw P) :
-    π • Pω.mk z = Pω.mk (Raw.smul π z) := rfl
+    π • Pω.mk z = Pω.mk (π • z) := rfl
 
 theorem Pω.mk_map {k N : ℕ} (u : k ⟶ N) (t : Fin N ↪ ℕ) (x : P.obj k) :
     Pω.mk (⟨N, t, P.map u x⟩ : Raw P) = Pω.mk ⟨k, u.trans t, x⟩ :=
-  Quotient.sound ⟨N, 𝟙 N, u, t, rfl, rfl, by simp⟩
-
-instance : MulAction (Perm ℕ) (Pω P) where
-  one_smul b := by cases b using Pω.ind; rfl
-  mul_smul π₁ π₂ b := by cases b using Pω.ind; rfl
+  Quotient.sound ⟨N, 𝟙 N, u, t, rfl, rfl, P.map_id N ▸ rfl⟩
 
 def Supports (A : Set ℕ) (z : Pω P) : Prop :=
   ∀ π : Perm ℕ, (∀ a ∈ A, π a = a) → π • z = z
 
 theorem Supports.range (z : Raw P) : Supports (Set.range z.s) (Pω.mk z) := by
   intro π hπ
-  have hs : (Raw.smul π z).s = z.s := by
+  have hs : (π • z).s = z.s := by
     ext i
     exact hπ _ ⟨i, rfl⟩
   exact Quotient.sound ⟨z.k, 𝟙 _, 𝟙 _, z.s, hs, rfl, rfl⟩
@@ -277,12 +269,11 @@ theorem Supports.inter {A B : Set ℕ} (hA : A.Finite) (hB : B.Finite) {z : Pω 
   have hsw a b : a ∉ A ∩ B → b ∉ A ∩ B → Equiv.swap a b • Pω.mk w = Pω.mk w :=
     Supports.swap_fix hA hB ha hb
   have ⟨ρ, hρz, _, hρD⟩ := realize hsw hπ (Finset.univ.image w.s)
-  have hagree : ∀ i, ρ (w.s i) = π (w.s i) := fun i => hρD _ (by simp)
+  have hagree (i : Fin w.k) : ρ (w.s i) = π (w.s i) := hρD (w.s i) (by simp)
   have heq : ρ • Pω.mk w = π • Pω.mk w := by
-    change Pω.mk (Raw.smul ρ w) = Pω.mk (Raw.smul π w)
-    dsimp only [Raw.smul]
-    congr 2
-    exact Embedding.ext hagree
+    rw [Pω.smul_mk, Pω.smul_mk]
+    congr 1
+    exact congrArg (Raw.mk w.k · w.x) (Embedding.ext hagree)
   rw [← heq, hρz]
 
 theorem exists_perm_eqOn (g : ℕ → ℕ) (D : Finset ℕ) (hg : Set.InjOn g ↑D) :
@@ -312,17 +303,14 @@ theorem extPerm_apply {m n : ℕ} (u : m ⟶ n) (i : Fin m) :
   change (extPerm_exists u).choose i = u i
   rw [h, extFun, dif_pos i.isLt]
 
-theorem extPerm_lt {m n : ℕ} (u : m ⟶ n) {k : ℕ} (hk : k < m) : extPerm u k < n := by
-  have h : extPerm u (⟨k, hk⟩ : Fin m) = u ⟨k, hk⟩ := extPerm_apply u ⟨k, hk⟩
-  rw [h]
-  exact (u ⟨k, hk⟩).isLt
+theorem extPerm_lt {m n : ℕ} (u : m ⟶ n) {k : ℕ} (hk : k < m) : extPerm u k < n :=
+  extPerm_apply u ⟨k, hk⟩ ▸ (u ⟨k, hk⟩).isLt
 
 theorem Supports.smul_eq_of_eqOn {n : ℕ} {z : Pω P} (hz : Supports {a | a < n} z)
     {p q : Perm ℕ} (h : ∀ a, a < n → p a = q a) : p • z = q • z := by
   have hfix : (q⁻¹ * p) • z = z := by
     apply hz
     intro a ha
-    rw [Set.mem_setOf_eq] at ha
     rw [Perm.mul_apply, h a ha]
     exact Perm.inv_eq_iff_eq.mpr rfl
   calc p • z
@@ -330,32 +318,20 @@ theorem Supports.smul_eq_of_eqOn {n : ℕ} {z : Pω P} (hz : Supports {a | a < n
     _ = q • z := by rw [hfix]
 
 theorem extPerm_apply_lt {m n : ℕ} (u : m ⟶ n) {k : ℕ} (hk : k < m) :
-    extPerm u k = u ⟨k, hk⟩ := by
-  simpa using extPerm_apply u ⟨k, hk⟩
+    extPerm u k = u ⟨k, hk⟩ :=
+  extPerm_apply u ⟨k, hk⟩
 
-theorem supports_extPerm {m n : ℕ} (u : m ⟶ n) {z : Pω P}
-    (hz : Supports {a | a < m} z) : Supports {a | a < n} (extPerm u • z) := by
-  intro σ hσ
-  have hfix : ((extPerm u)⁻¹ * σ * extPerm u) • z = z := hz _ (by
-    intro a ha
-    rw [Set.mem_setOf_eq] at ha
-    rw [Perm.mul_apply, Perm.mul_apply, hσ _ (extPerm_lt u ha)]
-    exact Perm.inv_eq_iff_eq.mpr rfl)
-  have key : σ * extPerm u = extPerm u * ((extPerm u)⁻¹ * σ * extPerm u) := by
-    rw [mul_assoc (extPerm u)⁻¹ σ, mul_inv_cancel_left]
-  rw [← mul_smul, key, mul_smul, hfix]
+theorem extPerm_sq₁ {ℓ m n k : ℕ} (hk : k < m) : extPerm (sq₁ ℓ m n) k = ℓ + k :=
+  extPerm_apply_lt _ hk
 
-theorem extPerm_sq₁ {ℓ m n k : ℕ} (hk : k < m) : extPerm (sq₁ ℓ m n) k = ℓ + k := by
-  rw [extPerm_apply_lt _ hk]; rfl
+theorem extPerm_sq₂ {ℓ m n k : ℕ} (hk : k < m) : extPerm (sq₂ ℓ m n) k = k :=
+  extPerm_apply_lt _ hk
 
-theorem extPerm_sq₂ {ℓ m n k : ℕ} (hk : k < m) : extPerm (sq₂ ℓ m n) k = k := by
-  rw [extPerm_apply_lt _ hk]; rfl
+theorem extPerm_sq₃ {ℓ m n k : ℕ} (hk : k < ℓ + m) : extPerm (sq₃ ℓ m n) k = k :=
+  extPerm_apply_lt _ hk
 
-theorem extPerm_sq₃ {ℓ m n k : ℕ} (hk : k < ℓ + m) : extPerm (sq₃ ℓ m n) k = k := by
-  rw [extPerm_apply_lt _ hk]; rfl
-
-theorem extPerm_sq₄ {ℓ m n k : ℕ} (hk : k < m + n) : extPerm (sq₄ ℓ m n) k = ℓ + k := by
-  rw [extPerm_apply_lt _ hk]; rfl
+theorem extPerm_sq₄ {ℓ m n k : ℕ} (hk : k < m + n) : extPerm (sq₄ ℓ m n) k = ℓ + k :=
+  extPerm_apply_lt _ hk
 
 theorem Supports.mono {A B : Set ℕ} {z : Pω P} (hAB : A ⊆ B) (h : Supports A z) :
     Supports B z := fun π hπ => h π fun a ha => hπ a (hAB ha)
@@ -370,6 +346,10 @@ theorem Supports.smul {A : Set ℕ} {z : Pω P} (h : Supports A z) (p : Perm ℕ
   have key : σ * p = p * (p⁻¹ * σ * p) := by rw [mul_assoc p⁻¹ σ, mul_inv_cancel_left]
   rw [← mul_smul, key, mul_smul, hfix]
 
+theorem supports_extPerm {m n : ℕ} (u : m ⟶ n) {z : Pω P}
+    (hz : Supports {a | a < m} z) : Supports {a | a < n} (extPerm u • z) :=
+  (hz.smul (extPerm u)).mono (Set.image_subset_iff.mpr fun _ => extPerm_lt u)
+
 abbrev L.obj (P : ℕ ⥤ Type) (n : ℕ) : Type := { z : Pω P // Supports {a | a < n} z }
 
 noncomputable def L.map {m n : ℕ} (u : m ⟶ n) : L.obj P m → L.obj P n
@@ -380,36 +360,27 @@ noncomputable def L.pre (P : ℕ ⥤ Type) : ℕ ⥤ Type where
   map u := ↾L.map u
   map_id n := by
     ext ⟨z, hz⟩
-    change extPerm (𝟙 n) • z = z
-    rw [hz.smul_eq_of_eqOn (by
-      intro a ha
-      rw [Perm.one_apply, extPerm_apply_lt (𝟙 n) ha]
-      rfl), one_smul]
+    exact (hz.smul_eq_of_eqOn fun _ => extPerm_apply_lt (𝟙 n)).trans (one_smul _ _)
   map_comp u v := by
     ext ⟨z, hz⟩
     change extPerm (u ≫ v) • z = extPerm v • (extPerm u • z)
-    have : extPerm (u ≫ v) • z = (extPerm v * extPerm u) • z := by
-      apply hz.smul_eq_of_eqOn
-      intro a ha
-      rw [Perm.mul_apply, extPerm_apply_lt u ha,
-        extPerm_apply_lt v (u ⟨a, ha⟩).isLt, extPerm_apply_lt (u ≫ v) ha]
-      rfl
-    rw [← mul_smul, this]
+    rw [← mul_smul]
+    apply hz.smul_eq_of_eqOn
+    intro a ha
+    rw [Perm.mul_apply, extPerm_apply_lt u ha,
+      extPerm_apply_lt v (u ⟨a, ha⟩).isLt, extPerm_apply_lt (u ≫ v) ha]
+    rfl
 
 @[simp] theorem L.pre_map_val {m n : ℕ} (u : m ⟶ n) (x : L.obj P m) :
     ((L.pre P).map u x).val = extPerm u • x.val := rfl
 
 theorem sq₂_smul {ℓ m n : ℕ} {z : Pω P} (hz : Supports {a | a < m} z) :
-    extPerm (sq₂ ℓ m n) • z = z := by
-  rw [Supports.smul_eq_of_eqOn hz (q := 1) (by
-    intro a ha
-    rw [extPerm_sq₂ ha, Perm.one_apply]), one_smul]
+    extPerm (sq₂ ℓ m n) • z = z :=
+  (hz.smul_eq_of_eqOn fun _ => extPerm_sq₂).trans (one_smul _ _)
 
 theorem sq₃_smul {ℓ m n : ℕ} {z : Pω P} (hz : Supports {a | a < ℓ + m} z) :
-    extPerm (sq₃ ℓ m n) • z = z := by
-  rw [Supports.smul_eq_of_eqOn hz (q := 1) (by
-    intro a ha
-    rw [extPerm_sq₃ ha, Perm.one_apply]), one_smul]
+    extPerm (sq₃ ℓ m n) • z = z :=
+  (hz.smul_eq_of_eqOn fun _ => extPerm_sq₃).trans (one_smul _ _)
 
 theorem L.pre_suitable (P : ℕ ⥤ Type) : Suitable (L.pre P) := by
   intro ℓ m n
@@ -440,37 +411,33 @@ theorem L.pre_suitable (P : ℕ ⥤ Type) : Suitable (L.pre P) := by
       have hbd : b = d := by
         rw [← hcb, ← hdc]; exact Perm.inv_eq_iff_eq.mpr rfl
       omega
-    refine ⟨⟨z₂, hz₂m⟩, ?_, ?_⟩
-    · apply Subtype.ext
-      change extPerm (sq₁ ℓ m n) • z₂ = z₁
-      rw [hfib']
-      refine Supports.smul_eq_of_eqOn hz₂m ?_
-      intro a ha
-      rw [extPerm_sq₁ ha, extPerm_sq₄ (by omega)]
-    · apply Subtype.ext
-      exact sq₂_smul hz₂m
+    refine ⟨⟨z₂, hz₂m⟩, ?_, Subtype.ext (sq₂_smul hz₂m)⟩
+    apply Subtype.ext
+    change extPerm (sq₁ ℓ m n) • z₂ = z₁
+    rw [hfib']
+    exact hz₂m.smul_eq_of_eqOn fun a ha => (extPerm_sq₁ ha).trans (extPerm_sq₄ (by omega)).symm
 
 def Raw.map (f : P ⟶ Q) (z : Raw P) : Raw Q := ⟨z.k, z.s, f.app z.k z.x⟩
 
-theorem Raw.map_rel (f : P ⟶ Q) {z w : Raw P} (h : z ≈ w) : Raw.map f z ≈ Raw.map f w := by
+theorem Raw.map_rel (f : P ⟶ Q) {z w : Raw P} (h : z ≈ w) : z.map f ≈ w.map f := by
   have ⟨m, u, u', t, hu, hu', hx⟩ := h
   refine ⟨m, u, u', t, hu, hu', ?_⟩
   change Q.map u (f.app z.k z.x) = Q.map u' (f.app w.k w.x)
   rw [← NatTrans.naturality_apply, ← NatTrans.naturality_apply, hx]
 
-def Pω.map (f : P ⟶ Q) : Pω P → Pω Q := Quotient.map (Raw.map f) (fun _ _ h => Raw.map_rel f h)
+def Pω.map (f : P ⟶ Q) : Pω P → Pω Q := Quotient.map (Raw.map f) fun _ _ => Raw.map_rel f
 
 theorem Pω.map_smul (f : P ⟶ Q) (π : Perm ℕ) (z : Pω P) :
-    Pω.map f (π • z) = π • Pω.map f z :=
+    (π • z).map f = π • z.map f :=
   Pω.ind (fun _ => rfl) z
 
 theorem Supports.map {A : Set ℕ} (f : P ⟶ Q) {z : Pω P} (h : Supports A z) :
-    Supports A (Pω.map f z) := by
+    Supports A (z.map f) := by
   intro π hπ
   rw [← Pω.map_smul, h π hπ]
 
 def L.mapF {n : ℕ} (f : P ⟶ Q) : L.obj P n → L.obj Q n
-  | ⟨z, hz⟩ => ⟨Pω.map f z, hz.map f⟩
+  | ⟨z, hz⟩ => ⟨z.map f, hz.map f⟩
 
 def L.preMap (f : P ⟶ Q) : L.pre P ⟶ L.pre Q where
   app n := ↾L.mapF f
@@ -480,18 +447,17 @@ def L.preMap (f : P ⟶ Q) : L.pre P ⟶ L.pre Q where
 
 theorem range_valEmbedding (n : ℕ) : Set.range (@Fin.valEmbedding n) = {a | a < n} := by
   ext a
-  simp only [Set.mem_range, Set.mem_setOf_eq]
   exact ⟨fun ⟨i, hi⟩ => hi ▸ i.isLt, fun h => ⟨⟨a, h⟩, rfl⟩⟩
 
 def unitApp (P : ℕ ⥤ Type) (n : ℕ) (x : P.obj n) : L.obj P n :=
   ⟨Pω.mk ⟨n, Fin.valEmbedding, x⟩, range_valEmbedding n ▸ Supports.range ⟨n, Fin.valEmbedding, x⟩⟩
 
-theorem Pω.map_id (z : Pω P) : Pω.map (𝟙 P) z = z :=
+theorem Pω.map_id (z : Pω P) : z.map (𝟙 P) = z :=
   z.ind (fun _ => rfl)
 
 theorem Pω.map_comp (f : P ⟶ Q) (g : Q ⟶ R) (z : Pω P) :
-    Pω.map (f ≫ g) z = Pω.map g (Pω.map f z) :=
-  Pω.ind (fun _ => rfl) z
+    z.map (f ≫ g) = (z.map f).map g :=
+  z.ind (fun _ => rfl)
 
 noncomputable def L : (ℕ ⥤ Type) ⥤ Suitable.FullSubcategory where
   obj P := ⟨L.pre P, L.pre_suitable P⟩
@@ -507,8 +473,7 @@ def unit (P : ℕ ⥤ Type) : P ⟶ L.pre P where
     change Pω.mk ⟨n, Fin.valEmbedding, P.map u x⟩ = extPerm u • Pω.mk ⟨m, Fin.valEmbedding, x⟩
     rw [Pω.smul_mk]
     refine Quotient.sound ⟨n, 𝟙 n, u, Fin.valEmbedding, rfl, ?_, ?_⟩
-    · ext i
-      exact extPerm_apply u i
+    · exact Embedding.ext (extPerm_apply u)
     · simp only [CategoryTheory.Functor.map_id]
       rfl
 
@@ -535,18 +500,14 @@ theorem Suitable.map_injective (hS : Suitable S) {a b : ℕ} (u : a ⟶ b) : Inj
     (Fin.castLE hab) u (Fin.castLE_injective hab) u.injective
   let σhom : b ⟶ b := σ.toEmbedding
   let chom : a + (b - a) ⟶ b := (finCongr heq).toEmbedding
-  have hu : u = (sq₂ 0 a (b - a) ≫ chom) ≫ σhom := by
-    apply hom_ext; intro i
-    change u i = σhom (chom (sq₂ 0 a (b - a) i))
-    have harg : chom (sq₂ 0 a (b - a) i) = (⟨i, by omega⟩ : Fin b) := Fin.ext rfl
-    rw [harg]
-    exact (hσ i).symm
+  have hu : u = (sq₂ 0 a (b - a) ≫ chom) ≫ σhom :=
+    hom_ext fun i => (hσ i).symm
   rw [hu, S.map_comp, S.map_comp, types_comp, types_comp]
   refine (map_injective_of_comp_id σhom σ.symm.toEmbedding ?_).comp
     ((map_injective_of_comp_id chom (finCongr heq).symm.toEmbedding ?_).comp
       (hS.map_injective_sq₂ a (b - a)))
-  · exact hom_ext fun i => σ.symm_apply_apply i
-  · exact hom_ext fun i => (finCongr heq).symm_apply_apply i
+  · exact hom_ext σ.symm_apply_apply
+  · exact hom_ext (finCongr heq).symm_apply_apply
 
 theorem Suitable.colim_inj (hS : Suitable S) {K : ℕ} (t : Fin K ↪ ℕ) {x x' : S.obj K}
     (h : Pω.mk (⟨K, t, x⟩ : Raw S) = Pω.mk ⟨K, t, x'⟩) : x = x' := by
@@ -554,8 +515,8 @@ theorem Suitable.colim_inj (hS : Suitable S) {K : ℕ} (t : Fin K ↪ ℕ) {x x'
   have huu : u = u' := by
     apply hom_ext; intro i
     apply τ.injective
-    have e : u.trans τ i = u'.trans τ i := by rw [← hu, ← hu']
-    simpa only [Embedding.trans_apply] using e
+    change (u.trans τ) i = (u'.trans τ) i
+    rw [← hu, ← hu']
   rw [huu] at hval
   exact Suitable.map_injective hS u' hval
 
@@ -571,7 +532,7 @@ theorem relabel {k : ℕ} (s : Fin k ↪ ℕ) (x : S.obj k) (ζ ζ' : k ⟶ k) (
 def swapHom {k : ℕ} (i j : Fin k) : k ⟶ k := (Equiv.swap i j).toEmbedding
 
 theorem swapHom_comp_self {k : ℕ} (i j : Fin k) : swapHom i j ≫ swapHom i j = 𝟙 k :=
-  hom_ext fun a => Equiv.swap_apply_self i j a
+  hom_ext (Equiv.swap_apply_self i j)
 
 def cyc (k' : ℕ) : k' + 1 ⟶ 1 + k' := finAddFlip.toEmbedding
 
@@ -579,7 +540,7 @@ theorem cyc_lt {k' : ℕ} (i : Fin (k' + 1)) (h : i < k') : (cyc k' i : ℕ) = 1
   congrArg Fin.val (finAddFlip_apply_mk_left h)
 
 theorem cyc_ge {k' : ℕ} (i : Fin (k' + 1)) (h : ¬i < k') : (cyc k' i : ℕ) = 0 := by
-  have e : (cyc k' i : ℕ) = (i : ℕ) - k' :=
+  have e : (cyc k' i : ℕ) = i - k' :=
     congrArg Fin.val (finAddFlip_apply_mk_right (not_lt.mp h) i.isLt)
   omega
 
@@ -605,19 +566,18 @@ theorem remove_last (hS : Suitable S) {n k' : ℕ} (s : Fin (k' + 1) ↪ ℕ) (x
       · have h3 := s.injective hij
         simp only [Fin.ext_iff] at h3
         exact Fin.ext (by omega)⟩
-  have hts : ∀ i : Fin (k' + 1), t ⟨1 + i, by omega⟩ = s i := by
-    intro i
-    have hi : (⟨(1 + (i : ℕ)) - 1, by omega⟩ : Fin (k' + 1)) = i := by
+  have hts (i : Fin (k' + 1)) : t ⟨1 + i, by omega⟩ = s i := by
+    have hi : (⟨1 + i - 1, by omega⟩ : Fin (k' + 1)) = i := by
       apply Fin.ext
       rw [Fin.val_mk]
       omega
-    change (if (1 + (i : ℕ)) = 0 then c else s ⟨(1 + i) - 1, by omega⟩) = s i
+    change (if 1 + (i : ℕ) = 0 then c else s ⟨1 + i - 1, by omega⟩) = s i
     rw [if_neg (by omega), hi]
   let u₀ : k' + 1 ⟶ 1 + k' + 1 := sq₄ 1 k' 1
   let u₁ : k' + 1 ⟶ 1 + k' + 1 := cyc k' ≫ sq₃ 1 k' 1
   have hu0t : u₀.trans t = s := by
     ext i
-    change t (⟨1 + (i : ℕ), _⟩) = s i
+    change t (⟨1 + i, _⟩) = s i
     rw [hts i]
   have hu1t : u₁.trans t = s.trans (Equiv.swap (s ⟨k', Nat.lt_succ_self k'⟩) c) := by
     ext i
@@ -730,7 +690,7 @@ theorem desc_comp_unit (g : L.pre X ⟶ Y.obj) : desc (unit X ≫ g) = g := by
   apply (unitEquiv Y.property n).injective
   rw [Equiv.apply_symm_apply]
   apply Subtype.ext
-  change Pω.map (unit X ≫ g) z.val = Pω.mk ⟨n, Fin.valEmbedding, g.app n z⟩
+  change z.val.map (unit X ≫ g) = Pω.mk ⟨n, Fin.valEmbedding, g.app n z⟩
   have ⟨⟨k, s', x'⟩, hz1⟩ := Quotient.exists_rep z.val
   change Pω.mk ⟨k, s', x'⟩ = z.val at hz1
   have ⟨N, hnN, hsN⟩ : ∃ N, n ≤ N ∧ ∀ i, s' i < N := by
@@ -739,14 +699,9 @@ theorem desc_comp_unit (g : L.pre X ⟶ Y.obj) : desc (unit X ≫ g) = g := by
     omega
   let vN : k ⟶ N := ⟨fun i => (⟨s' i, hsN i⟩ : Fin N), fun i j hij =>
     s'.injective (Fin.ext_iff.mp hij)⟩
-  have hvN : ∀ i : Fin k, extPerm vN i = s' i := by
-    intro i
-    rw [extPerm_apply_lt vN i.isLt]
-    rfl
-  have hincl : ∀ a, a < n → extPerm (Fin.castLEEmb hnN) a = a := by
-    intro a ha
-    rw [extPerm_apply_lt (Fin.castLEEmb hnN) ha]
-    rfl
+  have hvN (i : Fin k) : extPerm vN i = s' i := extPerm_apply_lt vN i.isLt
+  have hincl (a : ℕ) : a < n → extPerm (Fin.castLEEmb hnN) a = a :=
+    extPerm_apply_lt (Fin.castLEEmb hnN)
   have zN_eq : (L.pre X).map (Fin.castLEEmb hnN) z = (L.pre X).map vN (unitApp X k x') := by
     apply Subtype.ext
     change extPerm (Fin.castLEEmb hnN) • z.val = extPerm vN • Pω.mk ⟨k, Fin.valEmbedding, x'⟩
