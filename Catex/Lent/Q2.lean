@@ -20,8 +20,8 @@ and,
    H φ := {φ_c : {X(c) → 𝑌 (c) | c ∈ obj(𝓒)}
 -/
 def H : (𝓒 ⥤ Type u) ⥤ (Discrete 𝓒 ⥤ Type u) where
-  obj X := Discrete.functor (fun c => X.obj c)
-  map φ := Discrete.natTrans (fun c => φ.app c.as)
+  obj X := Discrete.functor X.obj
+  map φ := Discrete.natTrans (φ.app ·.as)
 
 /- Prove that the functor H : Set^𝓒 → Set^obj(𝓒) has both a left and a right adjoint. -/
 
@@ -70,9 +70,9 @@ def H.leftAdjunction : H.left 𝓒 ⊣ H 𝓒 :=
 def H.right : (Discrete 𝓒 ⥤ Type u) ⥤ (𝓒  ⥤ Type u) where
   obj F := {
     obj c := ∀ d : 𝓒, (c ⟶ d) → F.obj ⟨d⟩
-    map {c c'} g := ↾fun α d h => α d (g ≫ h)
+    map g := ↾fun α d h => α d (g ≫ h)
   }
-  map {F G} fg := {
+  map fg := {
     app c := ↾fun β d f => fg.app ⟨d⟩ (β d f)
   }
 
