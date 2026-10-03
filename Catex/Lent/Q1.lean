@@ -15,7 +15,7 @@ variable (R : 𝓒)
 
 /-- Recall the functor R^(−) : 𝓒ᵒᵖ ⥤ 𝓒 mapping an object X of 𝓒 to the exponential object R^X of 𝓒,
 and a morphism f : Z → Y of 𝓒 to the morphism R^f = cur (app ◦ (id_{R^Y} × f)) : R^Y → R^Z -/
-def expFunctor : 𝓒ᵒᵖ ⥤ 𝓒 where
+abbrev expFunctor : 𝓒ᵒᵖ ⥤ 𝓒 where
   obj X := X.unop ⟹ R
   map {Y Z} f :=
     let Y : 𝓒 := Y.unop
@@ -48,7 +48,7 @@ example : expFunctor R = MonoidalClosed.internalHom.flip.obj R := by
   rfl
 
 /-- The left adjoint to expFunctor R, mapping Y ↦ (Y ⟹ R). -/
-def expFunctorLeftAdjoint : 𝓒 ⥤ 𝓒ᵒᵖ where
+abbrev expFunctorLeftAdjoint : 𝓒 ⥤ 𝓒ᵒᵖ where
   obj Y := op (Y ⟹ R)
   map f := ((MonoidalClosed.pre f).app R).op
 
@@ -58,20 +58,23 @@ def expFunctorAdjunction : expFunctorLeftAdjoint R ⊣ expFunctor R :=
     homEquiv Y X := {
       toFun f := curry ((β_ X.unop Y).hom ≫ uncurry f.unop)
       invFun g := (curry ((β_ Y X.unop).hom ≫ uncurry g)).op
-      left_inv f := by simp [expFunctorLeftAdjoint]
+      left_inv f := by simp
       right_inv g := by simp [expFunctorLeftAdjoint]
     }
     homEquiv_naturality_left_symm {Y' Y X} f g := by
       apply Quiver.Hom.unop_inj
       dsimp only [Equiv.coe_fn_symm_mk]
-      simp only [unop_comp, expFunctorLeftAdjoint, expFunctor]
+      simp only [unop_comp]
       rw [uncurry_natural_left, ← Category.assoc (β_ Y' X.unop).hom,
         ← BraidedCategory.braiding_naturality_left, Category.assoc]
       exact (MonoidalClosed.curry_pre_app f _).symm
     homEquiv_naturality_right {Y X X'} f g := by
       dsimp only [Equiv.coe_fn_mk]
-      simp only [unop_comp, expFunctor_map, expFunctorLeftAdjoint]
+      simp only [unop_comp]
       rw [uncurry_natural_left, ← Category.assoc (β_ X'.unop Y).hom,
         ← BraidedCategory.braiding_naturality_left, Category.assoc]
+      rw [show curry ((g.unop ⊗ₘ 𝟙 (X.unop ⟹ R)) ≫
+        uncurry (𝟙 (X.unop ⟹ R))) = (MonoidalClosed.pre g.unop).app R from
+        expFunctor_map R g]
       exact (MonoidalClosed.curry_pre_app g.unop _).symm
   }

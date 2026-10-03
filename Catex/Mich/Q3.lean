@@ -1,10 +1,10 @@
 module
 
 public import Mathlib.Algebra.Order.Group.Multiset
-public import Mathlib.CategoryTheory.Limits.Shapes.BinaryProducts
+public import Mathlib.CategoryTheory.Limits.Shapes.BinaryProducts.ProdComparison
 public import Mathlib.Algebra.BigOperators.Group.Multiset.Defs
-public import Mathlib.Data.Finite.Defs
-import Mathlib.Data.Finite.Prod
+public import Mathlib.Basic.Finite.Defs
+import Mathlib.Basic.Finite.Prod
 
 @[expose] public section
 
@@ -160,7 +160,7 @@ instance : Category.{u, u + 1} EntCat where
 open Ent
 
 instance : HasTerminal EntCat := by
-  refine (IsTerminal.ofUniqueHom (Y := ⟨PEmpty⟩)
+  refine (IsTerminal.ofUniqueHom (X := ⟨PEmpty⟩)
     (fun X => ?_) (fun X m => ?_)).hasTerminal
   · nofun
   · funext _ b; exact b.elim
@@ -178,14 +178,10 @@ instance (A B : EntCat) : HasBinaryProduct A B := by
     BinaryFan.IsLimit.mk _ (fun f g ts => Sum.elim (f ts) (g ts)) ?_ ?_ ?_⟩
   · intro _ f g
     change comp (fun ts => Sum.elim (f ts) (g ts)) (lift fun x a => x = Sum.inl a) = f
-    rw [comp_lift]
-    ext as a
-    simp
+    exact (comp_lift _ _).trans (by funext as a; simp)
   · intro _ f g
     change comp (fun ts => Sum.elim (f ts) (g ts)) (lift fun x b => x = Sum.inr b) = g
-    rw [comp_lift]
-    ext as b
-    simp
+    exact (comp_lift _ _).trans (by funext as b; simp)
   · intro _ f g m h₁ h₂
     change comp m (lift fun x a => x = Sum.inl a) = f at h₁
     change comp m (lift fun x b => x = Sum.inr b) = g at h₂

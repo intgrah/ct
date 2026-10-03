@@ -292,7 +292,7 @@ theorem extPerm_exists {m n : ℕ} (u : m ⟶ n) :
   apply exists_perm_eqOn (extFun u) (Finset.range m)
   intro a ha b hb hab
   simp only [Finset.coe_range, Set.mem_Iio] at ha hb
-  simp only [extFun, dif_pos ha, dif_pos hb] at hab
+  simp only [extFun, dite_eq_left ha, dite_eq_left hb] at hab
   simpa using u.injective (Fin.val_injective hab)
 
 noncomputable def extPerm {m n : ℕ} (u : m ⟶ n) : Perm ℕ := (extPerm_exists u).choose
@@ -301,7 +301,7 @@ theorem extPerm_apply {m n : ℕ} (u : m ⟶ n) (i : Fin m) :
     extPerm u i = u i := by
   have h := (extPerm_exists u).choose_spec i (Finset.mem_range.mpr i.isLt)
   change (extPerm_exists u).choose i = u i
-  rw [h, extFun, dif_pos i.isLt]
+  rw [h, extFun, dite_eq_left i.isLt]
 
 theorem extPerm_lt {m n : ℕ} (u : m ⟶ n) {k : ℕ} (hk : k < m) : extPerm u k < n :=
   extPerm_apply u ⟨k, hk⟩ ▸ (u ⟨k, hk⟩).isLt
@@ -406,7 +406,7 @@ theorem L.pre_suitable (P : ℕ ⥤ Type) : Suitable (L.pre P) := by
       rw [hz₂eq]
       refine Supports.mono ?_ (hwAB.smul (extPerm (sq₄ ℓ m n))⁻¹)
       intro b ⟨c, ⟨hc1, d, hd, hdc⟩, hcb⟩
-      simp only [Set.mem_setOf_eq] at hc1 hd ⊢
+      simp only [Set.mem_ofPred_eq] at hc1 hd ⊢
       have he : extPerm (sq₄ ℓ m n) d = ℓ + d := extPerm_sq₄ hd
       have hbd : b = d := by
         rw [← hcb, ← hdc]; exact Perm.inv_eq_iff_eq.mpr rfl
@@ -550,7 +550,7 @@ theorem remove_last (hS : Suitable S) {n k' : ℕ} (s : Fin (k' + 1) ↪ ℕ) (x
     ∃ (s' : Fin k' ↪ ℕ) (y : S.obj k'),
       Pω.mk (⟨k', s', y⟩ : Raw S) = Pω.mk ⟨k' + 1, s, x⟩ := by
   have ⟨c, hc⟩ := ((Set.finite_range s).union (Set.finite_lt_nat n)).infinite_compl.nonempty
-  simp only [Set.mem_compl_iff, Set.mem_union, Set.mem_range, Set.mem_setOf_eq, not_or,
+  simp only [Set.mem_compl_iff, Set.mem_union, Set.mem_range, Set.mem_ofPred_eq, not_or,
     not_exists] at hc
   have ⟨hcs, hcn⟩ := hc
   rw [not_lt] at hcn
@@ -559,7 +559,7 @@ theorem remove_last (hS : Suitable S) {n k' : ℕ} (s : Fin (k' + 1) ↪ ℕ) (x
       intro j₁ j₂ hij
       by_cases h1 : (j₁ : ℕ) = 0 <;>
       by_cases h2 : (j₂ : ℕ) = 0 <;>
-        simp only [h1, h2, if_true, if_false] at hij
+        simp only [h1, h2, ite_true, ite_false] at hij
       · exact Fin.ext (by omega)
       · exact absurd hij.symm (hcs _)
       · exact absurd hij (hcs _)
@@ -572,7 +572,7 @@ theorem remove_last (hS : Suitable S) {n k' : ℕ} (s : Fin (k' + 1) ↪ ℕ) (x
       rw [Fin.val_mk]
       omega
     change (if 1 + (i : ℕ) = 0 then c else s ⟨1 + i - 1, by omega⟩) = s i
-    rw [if_neg (by omega), hi]
+    rw [ite_eq_right (by omega), hi]
   let u₀ : k' + 1 ⟶ 1 + k' + 1 := sq₄ 1 k' 1
   let u₁ : k' + 1 ⟶ 1 + k' + 1 := cyc k' ≫ sq₃ 1 k' 1
   have hu0t : u₀.trans t = s := by
@@ -610,7 +610,7 @@ theorem remove_last (hS : Suitable S) {n k' : ℕ} (s : Fin (k' + 1) ↪ ℕ) (x
       : Raw S) = Pω.mk ⟨k' + 1, s, x⟩ := by
     have hfix := hsupp (Equiv.swap (s ⟨k', Nat.lt_succ_self k'⟩) c) (by
       intro a ha
-      rw [Set.mem_setOf_eq] at ha
+      rw [Set.mem_ofPred_eq] at ha
       apply Equiv.swap_apply_of_ne_of_ne <;> omega)
     rwa [Pω.smul_mk] at hfix
   have hu01 : S.map u₀ x = S.map u₁ x := Suitable.colim_inj hS t (by rw [rep0, rep1, hsw])

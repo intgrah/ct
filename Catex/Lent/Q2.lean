@@ -63,8 +63,7 @@ def H.leftAdjunction : H.left 𝓒 ⊣ H 𝓒 :=
       rw [Category.id_comp]
     right_triangle := by
       ext X c y
-      change X.map (𝟙 c.as) y = y
-      rw [Functor.map_id_apply]
+      exact Functor.map_id_apply X c.as y
   }
 
 def H.right : (Discrete 𝓒 ⥤ Type u) ⥤ (𝓒  ⥤ Type u) where
@@ -104,7 +103,7 @@ def H.rightAdjunction : H 𝓒 ⊣ H.right 𝓒 :=
     left_triangle := by
       ext p c f
       change p.map (𝟙 c.as) f = f
-      rw [Functor.map_id_apply]
+      exact Functor.map_id_apply p c.as f
     right_triangle := by
       ext p c f
       funext d g

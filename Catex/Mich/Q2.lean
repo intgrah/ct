@@ -48,7 +48,7 @@ instance : Category (Obj X) where
         = g.h (B.f x) := congrArg g.h (congrFun f.preserves_f x)
       _ = C.f x := congrFun g.preserves_f x⟩
 
-def FreeCommMonoid (X : Type u) : Obj X where
+abbrev FreeCommMonoid (X : Type u) : Obj X where
   A := Multiset X
   α := List.sum
   f x := {x}
@@ -100,4 +100,6 @@ instance : HasInitial (Obj X) := by
       have hih : g (xs : Multiset X) = T.α (xs.map T) := ih
       have reassoc : T.α (T x :: xs.map T) = T.α [T x, T.α (xs.map T)] := by
         simpa [T.sing] using (T.flat [[T x], xs.map T]).symm
-      simpa [FreeCommMonoid, hx, hih, reassoc] using hα
+      change g (List.sum [({x} : Multiset X), (xs : Multiset X)]) =
+        T.α [g {x}, g (xs : Multiset X)] at hα
+      simpa [hx, hih, reassoc] using hα

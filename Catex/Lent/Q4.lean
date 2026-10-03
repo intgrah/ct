@@ -1,6 +1,7 @@
 module
 
 public import Mathlib.CategoryTheory.Monoidal.Closed.Types
+public import Mathlib.CategoryTheory.Monoidal.Closed.FunctorToTypes
 
 public import Catex.Lent.FinInj
 
@@ -20,7 +21,7 @@ def N : ℕ ⥤ Type where
   obj n := Fin n
   map ι := ↾ι
 
-noncomputable def Ptilde (P : ℕ ⥤ Type) : ℕ ⥤ Type where
+noncomputable abbrev Ptilde (P : ℕ ⥤ Type) : ℕ ⥤ Type where
   /-
   For a covariant presheaf P in Setᴵ, let (P̃(n) | n ∈ ℕ) be the indexed family of sets given by:
     P̃(n) = P(n)ⁿ × P(n + 1) = (Fin n → P(n)) × P(n + 1)
@@ -41,7 +42,7 @@ noncomputable def Ptilde (P : ℕ ⥤ Type) : ℕ ⥤ Type where
   map_id n := by
     ext ⟨f, x⟩ j
     · have h : ∃ i, 𝟙 n i = j := ⟨j, rfl⟩
-      simp only [CategoryTheory.Functor.map_id, TypeCat.hom_ofHom, dif_pos h]
+      simp only [CategoryTheory.Functor.map_id, TypeCat.hom_ofHom, dite_eq_left h]
       exact congrArg f h.choose_spec
     · simp
   map_comp {m n p} ι₁ ι₂ := by
@@ -53,15 +54,15 @@ noncomputable def Ptilde (P : ℕ ⥤ Type) : ℕ ⥤ Type where
         else _
       by_cases h_comp : ∃ i, (ι₁ ≫ ι₂) i = k
       · -- k is in range of composition
-        rw [dif_pos h_comp]
+        rw [dite_eq_left h_comp]
         have h₂ : ∃ j, ι₂ j = k := ⟨ι₁ h_comp.choose, h_comp.choose_spec⟩
-        rw [dif_pos h₂]
+        rw [dite_eq_left h₂]
         have h1 : ∃ i, ι₁ i = h₂.choose := by
           use h_comp.choose
           apply ι₂.injective
           change (ι₁ ≫ ι₂) h_comp.choose = ι₂ h₂.choose
           rw [h_comp.choose_spec, h₂.choose_spec]
-        rw [dif_pos h1]
+        rw [dite_eq_left h1]
         have heq : h1.choose = h_comp.choose := by
           apply ι₁.injective
           apply ι₂.injective
@@ -72,38 +73,36 @@ noncomputable def Ptilde (P : ℕ ⥤ Type) : ℕ ⥤ Type where
             _ = ι₂ (ι₁ h_comp.choose) := rfl
         simp only [P.map_comp, heq]
         rfl
-      · rw [dif_neg h_comp]
+      · rw [dite_eq_right h_comp]
         have h_comp' : ∀ i, (ι₁.trans ι₂) i ≠ k := not_exists.mp h_comp
         by_cases h₂ : ∃ j, ι₂ j = k
         · -- k is in range of ι₂, but not in range of composition
-          rw [dif_pos h₂]
+          rw [dite_eq_left h₂]
           have h₁ : ¬∃ i, ι₁ i = h₂.choose := by
             intro ⟨i, hi⟩
             apply h_comp
             use i
             change ι₂ (ι₁ i) = k
             rw [hi, h₂.choose_spec]
-          rw [dif_neg h₁]
+          rw [dite_eq_right h₁]
           apply not_exists.mp at h₁
           have heq : extendVacant h_comp' = (extendVacant h₁).trans ι₂ := by
             ext i
             cases i using Fin.lastCases with
             | last =>
-              simpa only [extendVacant, Function.Embedding.toFun_eq_coe,
-                Function.Embedding.coeFn_mk, Fin.lastCases_last, Function.Embedding.trans_apply]
-              using congrArg Fin.val h₂.choose_spec.symm
+              simpa using congrArg Fin.val h₂.choose_spec.symm
             | cast j =>
-              simp [extendVacant, Fin.lastCases_castSucc]
+              simp
           calc P.map (extendVacant h_comp') x
               = P.map ((extendVacant h₁).trans ι₂) x := by rw [heq]
             _ = (P.map (extendVacant h₁) ≫ P.map ι₂) x := by rw [← P.map_comp]; rfl
             _ = P.map ι₂ (P.map (extendVacant h₁) x) := rfl
-        · rw [dif_neg h₂]
+        · rw [dite_eq_right h₂]
           apply not_exists.mp at h₂
           have heq : extendVacant h_comp' = (extendLast ι₁).trans (extendVacant h₂) := by
             ext i
             cases i using Fin.lastCases <;>
-            simp [extendVacant, extendLast]
+            simp
           calc P.map (extendVacant h_comp') x
               = P.map ((extendLast ι₁).trans (extendVacant h₂)) x := by rw [heq]
             _ = (P.map (extendLast ι₁) ≫ P.map (extendVacant h₂)) x := by rw [← P.map_comp]; rfl
@@ -125,21 +124,22 @@ def eval : N ⊗ P˜ ⟶ P where
     ext ⟨i, f, x⟩
     change (if h : ∃ k, ι k = ι i then _ else _) = P.map ι (f i)
     have h : ∃ k, ι k = ι i := ⟨i, rfl⟩
-    rw [dif_pos h]
+    rw [dite_eq_left h]
     exact congrArg (fun y => P.map ι (f y)) (ι.injective h.choose_spec)
 
 noncomputable abbrev ev : N ⊗ (N ⟹ P) ⟶ P := (ihom.ev N).app P
 
 noncomputable abbrev forward : P˜ ⟶ N ⟹ P := MonoidalClosed.curry eval
 
-noncomputable def backward : N ⟹ P ⟶ P˜ where
+noncomputable abbrev backward : N ⟹ P ⟶ P˜ where
   app n := ↾fun α => {
     fst i := ev.app n (i, α)
     snd := ev.app (n + 1) (Fin.last n, (N ⟹ P).map Fin.castSuccEmb α)
   }
   naturality {m n} ι := by
     let castSuccM : Fin m ↪ Fin (m + 1) := Fin.castSuccEmb
-    ext α
+    apply ConcreteCategory.hom_ext
+    intro α
     apply Prod.ext
     · ext j
       dsimp
@@ -148,17 +148,16 @@ noncomputable def backward : N ⟹ P ⟶ P˜ where
           simp only [hj.choose_spec]
         erw [this]
         change _ = if _ : ∃ i, ι i = j then _ else _
-        rw [dif_pos hj]
+        rw [dite_eq_left hj]
         have key := ConcreteCategory.congr_hom (ev.naturality ι)
           ((hj.choose, α) : (N ⊗ (N ⟹ P)).obj m)
-        simp only [ConcreteCategory.comp_apply] at key
         exact key
       · let vacant := extendVacant (not_exists.mp hj)
         have ext_comp : castSuccM ≫ vacant = ι := by
           change castSuccM.trans vacant = ι
           ext
-          simp [vacant, extendVacant, castSuccM, Fin.lastCases_castSucc]
-        have : vacant (Fin.last m) = j := by simp [vacant, extendVacant, Fin.lastCases_last]
+          simp [vacant, castSuccM]
+        have : vacant (Fin.last m) = j := by simp [vacant]
         have : (N ⟹ P).map ι = (N ⟹ P).map castSuccM ≫ (N ⟹ P).map vacant := by
           rw [← (N ⟹ P).map_comp, ext_comp]
         have pair_eq : (j, (N ⟹ P).map ι α) =
@@ -166,10 +165,9 @@ noncomputable def backward : N ⟹ P ⟶ P˜ where
           simp [*]
         erw [pair_eq]
         change _ = if _ : ∃ i, ι i = j then _ else _
-        rw [dif_neg hj]
+        rw [dite_eq_right hj]
         have key := ConcreteCategory.congr_hom (ev.naturality vacant)
           ((Fin.last m, (N ⟹ P).map castSuccM α) : (N ⊗ (N ⟹ P)).obj (m + 1))
-        simp only [ConcreteCategory.comp_apply] at key
         exact key
     · let ι' := extendLast ι
       have : castSuccM ≫ ι' = ι ≫ Fin.castSuccEmb := castSucc_extendLast ι
@@ -183,7 +181,6 @@ noncomputable def backward : N ⟹ P ⟶ P˜ where
       erw [this]
       have key := ConcreteCategory.congr_hom (ev.naturality ι')
           ((Fin.last m, (N ⟹ P).map castSuccM α) : (N ⊗ (N ⟹ P)).obj (m + 1))
-      simp only [ConcreteCategory.comp_apply] at key
       exact key
 
 noncomputable abbrev adj : tensorLeft N ⊣ ihom N :=
@@ -200,7 +197,9 @@ lemma adj_eq : (tensorLeft N).map forward ≫ ev = (eval : N ⊗ P˜ ⟶ P) := b
   have adj_pt n i fx : ev.app n (i, forward.app n fx) = eval.app n (i, fx) := by
     rw [← adj_eq]
     rfl
-  ext n fx
+  ext n : 2
+  apply ConcreteCategory.hom_ext
+  intro fx
   apply Prod.ext
   · ext i
     dsimp only [NatTrans.comp_app, types_comp_apply, NatTrans.id_app, types_id_apply]
@@ -214,13 +213,15 @@ lemma adj_eq : (tensorLeft N).map forward ≫ ev = (eval : N ⊗ P˜ ⟶ P) := b
     have h_not : ¬∃ k, Fin.castSuccEmb k = Fin.last n := by
       intro ⟨k, hk⟩
       exact Fin.castSucc_ne_last k (by simp at hk)
-    have extend_id : extendVacant (not_exists.mp h_not) = 𝟙 (n + 1) := by
+    have extend_id (hj : ∀ k, Fin.castSuccEmb k ≠ Fin.last n) :
+        extendVacant hj = 𝟙 (n + 1) := by
+      change extendVacant hj = Function.Embedding.refl (Fin (n + 1))
       ext i
-      cases i using Fin.lastCases <;> (simp [extendVacant]; rfl)
+      cases i using Fin.lastCases <;> simp
     have rhs_eq : (P˜.map Fin.castSuccEmb fx).fst (Fin.last n) = fx.snd := by
       change (if _ : ∃ i, Fin.castSuccEmb i = Fin.last n then _ else _) = fx.snd
-      rw [dif_neg h_not, extend_id, P.map_id]
-      rfl
+      rw [dite_eq_right h_not]
+      simp [extend_id]
     calc ((forward ≫ backward).app n fx).2
         = ev.app (n + 1) (Fin.last n, (N ⟹ P).map Fin.castSuccEmb (forward.app n fx)) := rfl
       _ = ev.app (n + 1) (Fin.last n, forward.app (n + 1) (P˜.map Fin.castSuccEmb fx)) :=
@@ -243,8 +244,11 @@ lemma adj_eq : (tensorLeft N).map forward ≫ ev = (eval : N ⊗ P˜ ⟶ P) := b
       _ = eval.app m (i, backward.app m β) := key
       _ = ev.app m (i, β) := rfl
   apply (adj.homEquiv (N ⟹ P) P).symm.injective
-  simp_all [ev, Adjunction.homEquiv_symm_apply]
-  rfl
+  rw [Adjunction.homEquiv_symm_apply, Adjunction.homEquiv_symm_apply]
+  change (tensorLeft N).map (backward ≫ forward) ≫ ev =
+    (tensorLeft N).map (𝟙 (N ⟹ P)) ≫ ev
+  rw [(tensorLeft N).map_id (N ⟹ P), Category.id_comp]
+  exact this
 
 /--
 Show P̃ is isomorphic to the exponential presheaf Pᴺ in Setᴵ.
